@@ -23,11 +23,8 @@ def helpMessage() {
 
     nextflow run vpeddu/lava \\
         --OUTDIR output/
-  
-        --CONTROL_FASTQ The fastq reads for the first sample in
-                        your longitudinal analysis [REQUIRED]
 
-        --METADATA       Required argument: A two column csv - the first column is the
+        --METADATA      Required argument: A two column csv - the first column is the
                         path to all the fastqs you wish to include in your analysis.
                         All fastqs that you want to include need to be specified in
                         this file AND be located in the folder from which you are
@@ -99,18 +96,13 @@ include Alignment_prep from './Modules.nf'
 include Align_samples from './Modules.nf' 
 include Pipeline_prep from './Modules.nf'
 include Create_VCF from './Modules.nf'
-include Ref_done from './Modules.nf'
 include Extract_variants from './Modules.nf'
 include Annotate_complex from './Modules.nf'
-include Annotate_complex_first_passage from './Modules.nf'
 include Generate_output from './Modules.nf'
 
 
-// Throws exception if CONTROL_FASTQ doesn't exist 
-CONTROL_FASTQ = file(params.CONTROL_FASTQ, checkIfExists:true)
-
 // Staging python scripts
-PULL_ENTERZ = file("$workflow.projectDir/bin/pull_entrez.py")
+PULL_ENTREZ = file("$workflow.projectDir/bin/pull_entrez.py")
 WRITE_GFF = file("$workflow.projectDir/bin/write_gff.py")
 INITIALIZE_MERGED_CSV = file("$workflow.projectDir/bin/initialize_merged_csv.py")
 ANNOTATE_COMPLEX_MUTATIONS = file("$workflow.projectDir/bin/Annotate_complex_mutations.py")
@@ -119,16 +111,10 @@ RIBOSOMAL_SLIPPAGE = file("$workflow.projectDir/bin/ribosomal_slippage.py")
 GENOME_PROTEIN_PLOTS = file("$workflow.projectDir/bin/genome_protein_plots.py")
 PALETTE = file("$workflow.projectDir/bin/palette.py")
 
-//FASTA = file(params.FASTA)
- //input_read_ch = Channel
+//input_read_ch = Channel
 
 
 // Error handling for input flags
-//if CONTROL_FASTQ not set 
-if (!params.CONTROL_FASTQ){
-    println("Must provide control FASTQ with --ControlFastq") 
-    exit(1)
-}
 //if OUTDIR not set
 if (params.OUTDIR == false) {
     println( "Must provide an output directory with --OUTDIR") 
@@ -153,8 +139,8 @@ if (params.OUTDIR == false) {
 //     exit(1)
 // }
 // If no flags specified
-if(params.GFF == "False" && params.FASTA == 'NO_FILE' && params.GENBANK == "False"){ 
-    println('Either --GENBANK or --FASTA + --GFF are required flags')
+if(params.GENBANK == "False"){ 
+    println('Must provide --GENBANK flag with GenBank accession number.')
     exit(1)
 }
 
@@ -189,15 +175,11 @@ Channel
 
 // Run the workflow
 workflow {
-        //fml() 
     log.info nfcoreHeader()
         CreateGFF ( 
-            params.GENBANK, 
-            CONTROL_FASTQ,
-            PULL_ENTERZ,
+            params.GENBANK,
+            PULL_ENTREZ,
             WRITE_GFF
-            //file(params.FASTA),
-            //file(params.GFF)
         )
         
         Alignment_prep ( 
@@ -209,7 +191,6 @@ workflow {
         Align_samples ( 
             input_read_ch,
             Alignment_prep.out[0],
-            input_read_ch.first(),
             params.DEDUPLICATE
             
         )
@@ -217,32 +198,17 @@ workflow {
         Pipeline_prep ( 
             Align_samples.out[0].collect(),
             CreateGFF.out[2],
-            CreateGFF.out[3],
             Alignment_prep.out[0],
             INITIALIZE_MERGED_CSV
         )
 
         Create_VCF ( 
-            CreateGFF.out[3],
-            Pipeline_prep.out[2],
             Align_samples.out[0],
             Alignment_prep.out[1],
-            input_read_ch.first(),
             Alignment_prep.out[2]
         )
 
-        Ref_done ( 
-            input_read_ch.first(),
-            params.ALLELE_FREQ,
-            Create_VCF.out[0],
-            CreateGFF.out[3],
-            Pipeline_prep.out[3],
-            Align_samples.out[1],
-            METADATA_FILE
-        )
-
         Extract_variants ( 
-            input_read_ch.first(),
             Create_VCF.out[1],
             METADATA_FILE
 
@@ -253,23 +219,17 @@ workflow {
             ANNOTATE_COMPLEX_MUTATIONS
         )
 
-        Annotate_complex_first_passage( 
-            Ref_done.out[0],
-            ANNOTATE_COMPLEX_MUTATIONS
-        )
-
         Generate_output( 
-            Annotate_complex_first_passage.out,
             Annotate_complex.out[0].collect(),
             Annotate_complex.out[1].collect(),
             Annotate_complex.out[2].collect(),
             Annotate_complex.out[3].collect(),
             Pipeline_prep.out[0],
             Pipeline_prep.out[1],
-            Align_samples.out[2].collect(),
+            Align_samples.out[1].collect(),
             Create_VCF.out[2].collect(),
+            CreateGFF.out[3],
             CreateGFF.out[4],
-            CreateGFF.out[5],
             MAT_PEPTIDE_ADDITION,
             RIBOSOMAL_SLIPPAGE,
             GENOME_PROTEIN_PLOTS,

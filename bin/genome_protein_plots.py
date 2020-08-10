@@ -298,7 +298,7 @@ if __name__ == '__main__':
 	num_samples = merged.Sample.nunique()
 	unique_samples = merged.Sample.unique()
 	unique_samples = np.sort(merged.Sample.unique())
-	num_Passages = merged['Passage'].max()
+	unique_passages = merged.Passage.unique()
 	protein_names = []
 
 	user_af = -123
@@ -325,6 +325,14 @@ if __name__ == '__main__':
 		sample = merged_Sample
 		name = sample_name
 		syn_factors = ['nonsynonymous SNV', 'synonymous SNV', 'complex', 'stopgain', 'stoploss']
+
+		# Creates both tabs and different plots for each sample.
+		tab_name = name.split('/')[-1]
+		tab_name = tab_name.split('.fastq.gz')[0]
+		tab_name = tab_name.split('.fastq')[0]
+
+		name_from_passage = merged.loc[merged['Sample']==sample_name].iloc[0]
+		name_from_passage = name_from_passage['Passage']
 		
 		# Plot per base coverage for each sample as a subplot to the side.
 		coverage = pd.read_csv(sample_name.strip() + '.genomecov', names=["sample", 'position', 'cov'], header=0, sep='\t')
@@ -343,7 +351,7 @@ if __name__ == '__main__':
 		# Creates a graph with x-axis being genome length (based on protein csv).
 		## Took out active_scroll = "wheel_zoom" -RCS
 		genome_plot = figure(plot_width=1600, plot_height=800, y_range=DataRange1d(bounds=(0,102), start=0,end=102),
-			title=sample_name.split('/')[0], sizing_mode = 'scale_width',
+			title=name_from_passage, sizing_mode = 'scale_width',
 			x_range=DataRange1d(bounds=(0, proteins.iloc[proteins.shape[0]-1,2]), start=0, end=proteins.iloc[proteins.shape[0]-1,2]))
 		
 		# Plots by nucleotide letter change.
@@ -413,8 +421,7 @@ if __name__ == '__main__':
 		# Plots layout of all components.
 		genome_plot = layout(row([genome_plot, column([Div(text="""""", width=300, height=220),cov_graph,ose, slider, slider_af, syngroup, widgetbox(div),reset_button])]))
     	
-		# Creates both tabs and different plots for each sample.
-		tab = Panel(child=genome_plot, title=name.split('/')[-1])
+		tab = Panel(child=genome_plot, title=name_from_passage)
 		list_tabs.append(tab)
 		list_plots.append(genome_plot)
 	
@@ -428,6 +435,17 @@ if __name__ == '__main__':
 	merged.Protein.cat.set_categories(protein_names, inplace=True)
 	merged.sort_values(["Protein"])
 
+	merged.Sample = merged.Sample.str.replace(".fastq.gz","")
+	merged.Sample = merged.Sample.str.replace(".fastq","")
+	unique_samples_cut = []
+
+	# for sample_name in unique_samples:
+	# 	sample_name_cut = sample_name.split(".fastq")[0]
+	# 	unique_samples_cut.append(sample_name_cut)
+
+	for sample_name in unique_passages:
+		unique_samples_cut.append(sample_name)
+	
 	# Creates protein plots.
 	# These graphs plot sample # (based on metadata) on x-axis, and alelle frequency on the y-axis. Tabs allow
 	# navigation between different proteins on the top, organized by genome location.
@@ -442,26 +460,20 @@ if __name__ == '__main__':
 
 		protein_plot = figure(plot_width=1600, plot_height=800, y_range=DataRange1d(bounds=(0,102), start=0,end=102),
 			title=protein_name, sizing_mode = 'stretch_both',
- 			x_range=DataRange1d(bounds=(0,num_Passages), range_padding=0.5))
- 		## x_range=DataRange1d(bounds=(-1,5), start=-1, end=5))
-		
-		# Calculates amount of jitter based on scale of x-axis passages.
-		jitter_amount = num_Passages * 0.05
+ 			x_range=unique_samples_cut)
 
 		# Increases jitter to increase visibility when using -png.
 		if (args.png):
-			circle = protein_plot.circle(x=jitter('Passage',width=0.35, range=protein_plot.x_range), y='AF', size=15, alpha=0.8,
+			circle = protein_plot.circle(x='Passage', y='AF', size=15, alpha=0.8,
 				fill_color=factor_cmap('Change', palette=color_palette, factors=merged.Change.unique()),
 				line_color='white', line_width=2, line_alpha=1,legend = 'Change',source=depth_sample_p)
 		else:
-			circle = protein_plot.circle(x=jitter('Passage',width=jitter_amount), y='AF', size=15, alpha=0.7, hover_alpha = 1,
+			circle = protein_plot.circle(x=jitter('Passage', width = 0.6, range=protein_plot.x_range), y='AF', size=15, alpha=0.7, hover_alpha = 1,
 				fill_color=factor_cmap('Change', palette=color_palette, factors=merged.Change.unique()), 
 				hover_color=factor_cmap('Change', palette=color_palette, factors=merged.Change.unique()),
 				line_color='white', line_width=2, hover_line_color='white', line_alpha=1,legend = 'Change',source=depth_sample_p)
 
-		unique_passages = merged.Passage.unique().tolist()
-		protein_plot.xaxis.ticker = FixedTicker(ticks=unique_passages)
-		protein_plot.xaxis.axis_label = "Passage"
+		protein_plot.xaxis.axis_label = "Sample"
 		configurePlot(protein_plot)
 		protein_plot.add_tools(HoverTool(tooltips=TOOLTIPS))
 		

@@ -96,6 +96,7 @@ with open("final.csv") as f:
         # Corrects for ribosomal slippage by adding correction_number to 
         # original nucleotide/residue number.
         if '_ribosomal_slippage' in line:
+            
             if 'del' in nuc:
                 del_nuc_replacement = str(nuc_num + correction_number) + nuc[-4:]
                 new_line = line.replace(nuc, del_nuc_replacement)
