@@ -12,6 +12,7 @@ import os.path
 import pandas as pd
 import sys
 
+# Reads in a fasta and returns fasta name, fasta sequence with Ts instead of Us.
 def read_fasta(fasta_file_loc):
 	strain_list = []
 	genome_list = []
@@ -33,8 +34,10 @@ def read_fasta(fasta_file_loc):
 	genome_list.append(dna_string.replace('U', 'T'))
 	return strain_list, genome_list
 
+# Reads in consensus fasta.
 ignore, genome_ref = read_fasta('lava_ref.fasta')
 g = open('consensus.fasta', 'w')
+# Replaces consensus fasta header (pulled from GenBank) with >lava and writes the fasta sequence (with Ts instead of Us).
 g.write(">lava\n")
 g.write(genome_ref[0])
 g.close()
@@ -50,11 +53,15 @@ allow_one_mat = False
 
 # Pulls CDS annotations from downloaded genbank file 
 for line in open('lava_ref.gbk'):
+	# Grabs locations of proteins from CDS annotations.
 	if 'CDS' in line and '..' in line:
 		gene_loc_list.append(re.findall(r'\d+', line))
 		allow_one = True
+	# Grabs protein names from CDS annotations.
 	if '/product="' in line and allow_one:
 		allow_one = False
+		# Example product annotation: /product="ORF1ab polyprotein"
+		# Grabs name of gene in between quotes and replaces spaces with underscores to prevent issues downstream.
 		px = line.split('=')[1][1:-2]
 		px = px.replace(' ', '_')
 		gene_product_list.append(px)
@@ -67,7 +74,7 @@ for line in open('lava_ref.gbk'):
 		allow_one_mat = False
 		px = line.split('=')[1][1:-2]
 		px = px.replace(' ', '_')
-		# mature peptides can repeat in genbank files, don't want that
+		# Mature peptides can repeat in GenBank files, don't want that, so limit to one.
 		if px not in mat_peptide_product_list:
 			mat_peptide_product_list.append(px)
 			mat_peptide_loc_list.append(mat_peptide_current_loc)
@@ -122,7 +129,6 @@ for x in range(0, len(gene_product_list)):
 		gene_name = "F"
 	gene_end = str(gene_end)
 
-
 	## For ribosomal slippage, creates fake new protein to get the second set of values
 	if len(gene_loc_list[x]) == 4:
 		g.write(name + '\tLAVA\tgene\t' + str(gene_loc_list[x][2]) + '\t' + str(gene_loc_list[x][3]) + '\t.\t+\t.\tID=gene:' + gene_product_list[x] + '_ribosomal_slippage;biotype=protein_coding\n')
@@ -136,7 +142,6 @@ for x in range(0, len(gene_product_list)):
 		g.write(name + '\tLAVA\tCDS\t' +  gene_start + '\t' + gene_end + '\t.\t+\t0\tID=CDS:' + gene_name + ';Parent=transcript:' + gene_name + ';biotype=protein_coding\n')
 		g.write(name + '\tLAVA\ttranscript\t' + gene_start + '\t' + gene_end + '\t.\t+\t.\tID=transcript:' + gene_name + ';Parent=gene:' + gene_name + ';biotype=protein_coding\n')
 
+# Writes where the the protein containing the ribosomal slippage starts in separate file, to be parsed later.
 slip_start_file = open('ribosomal_start.txt', 'w')
 slip_start_file.write(slip_start)
-
-# Returns the filepaths for the new fasta and .gff file as strings 

@@ -5,7 +5,7 @@
 ========================================================================================
  Longitudinal Analysis of Viral Alleles
  #### Homepage / Documentation
-https://github.com/vpeddu/lava
+https://github.com/greninger-lab/lava
 ----------------------------------------------------------------------------------------
 */
 
@@ -15,15 +15,13 @@ nextflow.preview.dsl=2
 
 def helpMessage() {
     log.info"""
-    LAVA: Longitudinal Analysis of Viral Alleles
+    RAVA: Reference-based Analysis of Viral Alleles
 
     Usage:
 
     An example command for running the pipeline is as follows:
 
-    nextflow run vpeddu/lava \\
-        --OUTDIR output/
-
+    nextflow run greninger-lab/lava \\
         --METADATA      Required argument: A two column csv - the first column is the
                         path to all the fastqs you wish to include in your analysis.
                         All fastqs that you want to include need to be specified in
@@ -65,9 +63,13 @@ def helpMessage() {
     """.stripIndent()
 }
 
-/*
- * SET UP CONFIGURATION VARIABLES
- */
+////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////
+/*                                                    */
+/*          SET UP CONFIGURATION VARIABLES            */
+/*                                                    */
+////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////
 
 // Show help message
 params.help = false
@@ -77,8 +79,6 @@ if (params.help){
 }
 
 params.OUTDIR= false
-
-
 params.GENBANK = 'False'
 //params.GFF = 'False'
 //params.FASTA = 'NO_FILE'
@@ -104,7 +104,7 @@ include Generate_output from './Modules.nf'
 // Staging python scripts
 PULL_ENTREZ = file("$workflow.projectDir/bin/pull_entrez.py")
 WRITE_GFF = file("$workflow.projectDir/bin/write_gff.py")
-INITIALIZE_MERGED_CSV = file("$workflow.projectDir/bin/initialize_merged_csv.py")
+INITIALIZE_PROTEINS_CSV = file("$workflow.projectDir/bin/initialize_proteins_csv.py")
 ANNOTATE_COMPLEX_MUTATIONS = file("$workflow.projectDir/bin/Annotate_complex_mutations.py")
 MAT_PEPTIDE_ADDITION = file("$workflow.projectDir/bin/mat_peptide_addition.py")
 RIBOSOMAL_SLIPPAGE = file("$workflow.projectDir/bin/ribosomal_slippage.py")
@@ -145,7 +145,6 @@ if(params.GENBANK == "False"){
 }
 
 // Make sure OUTDIR ends with trailing slash
-
 if (!params.OUTDIR.endsWith("/")){
    params.OUTDIR = "${params.OUTDIR}/"
 }
@@ -163,17 +162,15 @@ Channel
     //.map{row-> (file(row.Sample).isEmpty())}
     //.filter{ it == false}.subscribe{println it}
 
-// test_Channel = Channel
-//     .fromPath(METADATA_FILE)
-//     .splitCsv(header:true)
-//     .map{row-> (file(row.Sample)) }
-    //.subscribe{checkIfExists(it)}
 
-//checkIfExists(test_Channel)
+////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////
+/*                                                    */
+/*                 RUN THE WORKFLOW                   */
+/*                                                    */
+////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////
 
-
-
-// Run the workflow
 workflow {
     log.info nfcoreHeader()
         CreateGFF ( 
@@ -199,7 +196,7 @@ workflow {
             Align_samples.out[0].collect(),
             CreateGFF.out[2],
             Alignment_prep.out[0],
-            INITIALIZE_MERGED_CSV
+            INITIALIZE_PROTEINS_CSV
         )
 
         Create_VCF ( 

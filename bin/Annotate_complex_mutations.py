@@ -1,3 +1,5 @@
+# Checks for complex mutations and prints a warning message.
+
 import subprocess 
 import argparse
 from Bio.Seq import Seq
