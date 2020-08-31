@@ -5,12 +5,14 @@ process CreateGFF {
 
 	// Retry on fail at most three times 
     errorStrategy 'retry'
-    maxRetries 3
+    maxRetries 0
 	
     input:
       val(GENBANK)
 	  file PULL_ENTREZ
 	  file WRITE_GFF
+	  file FASTA 
+	  file GFF
 
     output: 
       file "lava_ref.fasta"
@@ -25,12 +27,21 @@ process CreateGFF {
     
 	set -e 
 
-	# Pulls reference fasta and GenBank file using accession number specified by --GENBANK.
-	python3 ${PULL_ENTREZ} ${GENBANK}
-    /usr/local/miniconda/bin/bwa index lava_ref.fasta
-
-	# Creates a GFF (lava_ref.gff) for our consensus fasta per CDS annotations from our reference GenBank file.
-	python3 ${WRITE_GFF}
+	if [[ ${FASTA} == "NO_FILE" ]]
+		then
+			# Pulls reference fasta and GenBank file using accession number specified by --GENBANK.
+			python3 ${PULL_ENTREZ} ${GENBANK}
+			# Creates a GFF (lava_ref.gff) for our consensus fasta per CDS annotations from our reference GenBank file.
+			python3 ${WRITE_GFF}
+		else
+			cp ${FASTA} lava_ref.fasta
+			cp ${GFF} lava_ref.gff
+			cp lava_ref.fasta consensus.fasta
+			#Creates empty txt file
+			touch ribosomal_start.txt
+			touch mat_peptides.txt
+	fi
+    /usr/local/miniconda/bin/bwa index lava_ref.fasta	
 
     """
 }

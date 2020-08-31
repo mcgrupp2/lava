@@ -80,8 +80,8 @@ if (params.help){
 
 params.OUTDIR= false
 params.GENBANK = 'False'
-//params.GFF = 'False'
-//params.FASTA = 'NO_FILE'
+params.GFF = 'False'
+params.FASTA = 'NO_FILE'
 params.DEDUPLICATE = 'false' 
 params.ALLELE_FREQ = 'NO_VAL'
 
@@ -121,26 +121,21 @@ if (params.OUTDIR == false) {
     exit(1)
 }
 // If --GENBANK and --FASTA or --GFF are specified at the same time
-// if(((params.GENBANK != "False") && (params.FASTA != "NO_FILE"))){ 
-//     println("--GENBANK cannot be used with --FASTA or --GFF")
-//     exit(1)
-// }
-// if(((params.GENBANK != "False") && (params.GFF != "False"))){ 
-//     println("--GENBANK cannot be used with --FASTA or --GFF")
-//     exit(1)
-// }
-// // If --FASTA without --GENBANK or vice versa
-// if( (params.FASTA != "NO_FILE") && params.GFF == 'False'){ 
-//     println('--GFF needs to be specified with --FASTA')
-//     exit(1)
-// }
-// if( (params.GFF != "False") && params.FASTA == 'NO_FILE'){ 
-//     println('--FASTA needs to be specified with --GFF')
-//     exit(1)
-// }
-// If no flags specified
-if(params.GENBANK == "False"){ 
-    println('Must provide --GENBANK flag with GenBank accession number.')
+if(((params.GENBANK != "False") && (params.FASTA != "NO_FILE"))){ 
+    println("--GENBANK cannot be used with --FASTA or --GFF")
+    exit(1)
+}
+if(((params.GENBANK != "False") && (params.GFF != "False"))){ 
+    println("--GENBANK cannot be used with --FASTA or --GFF")
+    exit(1)
+}
+// If --FASTA without --GENBANK or vice versa
+if( (params.FASTA != "NO_FILE") && params.GFF == 'False'){ 
+    println('--GFF needs to be specified with --FASTA')
+    exit(1)
+}
+if( (params.GFF != "False") && params.FASTA == 'NO_FILE'){ 
+    println('--FASTA needs to be specified with --GFF')
     exit(1)
 }
 
@@ -176,7 +171,9 @@ workflow {
         CreateGFF ( 
             params.GENBANK,
             PULL_ENTREZ,
-            WRITE_GFF
+            WRITE_GFF,
+            file(params.FASTA),
+            file(params.GFF)
         )
         
         Alignment_prep ( 

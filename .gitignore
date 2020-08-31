@@ -9,3 +9,4 @@ test_data/ribosomal_slippage_testing/
 test_data/work/*
 *.DS_Store
 *.code-workspace
+test-data/*
