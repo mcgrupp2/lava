@@ -7,5 +7,5 @@ work/*
 test_data/ribosomal_slippage_testing/
 *.html
 test_data/work/*
-.DS_Store
+*.DS_Store
 *.code-workspace
