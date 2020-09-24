@@ -16,11 +16,8 @@ nextflow.preview.dsl=2
 def helpMessage() {
     log.info"""
     RAVA: Reference-based Analysis of Viral Alleles
-
     Usage:
-
     An example command for running the pipeline is as follows:
-
     nextflow run greninger-lab/lava \\
         --METADATA      Required argument: A two column csv - the first column is the
                         path to all the fastqs you wish to include in your analysis.
@@ -37,25 +34,19 @@ def helpMessage() {
                         control fastq. This option must be used with the -g flag to
                         specify the protein annotations relative to the start of this
                         fasta. [REQUIRED IF NOT --GENBANK]
-
         --GFF           Specify a reference gff file with the protein annotations for
                         the reference fasta supplied with the -f flag. This option
                         must be paired with the -f flag. [REQUIRED IF NOT GENBANK]
-
         --GENBANK       Provide a Genbank accession number. This record will be used
                         to generate a majority consensus from the control fastq, and
                         this consensus will be annotated from the downloaded genbank
                         record as well. [REQUIRED IF NOT --FASTA + --GFF]
-
         --AF            pecify an allele frequency percentage to cut off 
                         - with a minimum of 1 percent - in whole numbers. default = ' '
-
         --NUC           Results are listed as nucleotide changes not amino acid
                         changes. Do not use with -png.
-
         --ALLELE_FREQ   Specify an allele frequency percentage to cut off - with a
                         minimum of 1 percent - in whole numbers.
-
         --PNG           Output results as a png. Do not use with -nuc.
         
         --DEDUPLICATE   Optional flag, will perform automatic removal of PCR
@@ -80,8 +71,8 @@ if (params.help){
 
 params.OUTDIR= false
 params.GENBANK = 'False'
-params.GFF = 'False'
-params.FASTA = 'NO_FILE'
+//params.GFF = 'False'
+//params.FASTA = 'NO_FILE'
 params.DEDUPLICATE = 'false' 
 params.ALLELE_FREQ = 'NO_VAL'
 
@@ -121,21 +112,26 @@ if (params.OUTDIR == false) {
     exit(1)
 }
 // If --GENBANK and --FASTA or --GFF are specified at the same time
-if(((params.GENBANK != "False") && (params.FASTA != "NO_FILE"))){ 
-    println("--GENBANK cannot be used with --FASTA or --GFF")
-    exit(1)
-}
-if(((params.GENBANK != "False") && (params.GFF != "False"))){ 
-    println("--GENBANK cannot be used with --FASTA or --GFF")
-    exit(1)
-}
-// If --FASTA without --GENBANK or vice versa
-if( (params.FASTA != "NO_FILE") && params.GFF == 'False'){ 
-    println('--GFF needs to be specified with --FASTA')
-    exit(1)
-}
-if( (params.GFF != "False") && params.FASTA == 'NO_FILE'){ 
-    println('--FASTA needs to be specified with --GFF')
+// if(((params.GENBANK != "False") && (params.FASTA != "NO_FILE"))){ 
+//     println("--GENBANK cannot be used with --FASTA or --GFF")
+//     exit(1)
+// }
+// if(((params.GENBANK != "False") && (params.GFF != "False"))){ 
+//     println("--GENBANK cannot be used with --FASTA or --GFF")
+//     exit(1)
+// }
+// // If --FASTA without --GENBANK or vice versa
+// if( (params.FASTA != "NO_FILE") && params.GFF == 'False'){ 
+//     println('--GFF needs to be specified with --FASTA')
+//     exit(1)
+// }
+// if( (params.GFF != "False") && params.FASTA == 'NO_FILE'){ 
+//     println('--FASTA needs to be specified with --GFF')
+//     exit(1)
+// }
+// If no flags specified
+if(params.GENBANK == "False"){ 
+    println('Must provide --GENBANK flag with GenBank accession number.')
     exit(1)
 }
 
@@ -171,9 +167,7 @@ workflow {
         CreateGFF ( 
             params.GENBANK,
             PULL_ENTREZ,
-            WRITE_GFF,
-            file(params.FASTA),
-            file(params.GFF)
+            WRITE_GFF
         )
         
         Alignment_prep ( 

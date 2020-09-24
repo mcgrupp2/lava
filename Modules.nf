@@ -5,14 +5,12 @@ process CreateGFF {
 
 	// Retry on fail at most three times 
     errorStrategy 'retry'
-    maxRetries 0
+    maxRetries 3
 	
     input:
       val(GENBANK)
 	  file PULL_ENTREZ
 	  file WRITE_GFF
-	  file FASTA 
-	  file GFF
 
     output: 
       file "lava_ref.fasta"
@@ -26,23 +24,11 @@ process CreateGFF {
     #!/bin/bash
     
 	set -e 
-
-	if [[ ${FASTA} == "NO_FILE" ]]
-		then
-			# Pulls reference fasta and GenBank file using accession number specified by --GENBANK.
-			python3 ${PULL_ENTREZ} ${GENBANK}
-			# Creates a GFF (lava_ref.gff) for our consensus fasta per CDS annotations from our reference GenBank file.
-			python3 ${WRITE_GFF}
-		else
-			cp ${FASTA} lava_ref.fasta
-			cp ${GFF} lava_ref.gff
-			cp lava_ref.fasta consensus.fasta
-			#Creates empty txt file
-			touch ribosomal_start.txt
-			touch mat_peptides.txt
-	fi
-    /usr/local/miniconda/bin/bwa index lava_ref.fasta	
-
+	# Pulls reference fasta and GenBank file using accession number specified by --GENBANK.
+	python3 ${PULL_ENTREZ} ${GENBANK}
+    /usr/local/miniconda/bin/bwa index lava_ref.fasta
+	# Creates a GFF (lava_ref.gff) for our consensus fasta per CDS annotations from our reference GenBank file.
+	python3 ${WRITE_GFF}
     """
 }
 
@@ -68,16 +54,13 @@ process Alignment_prep {
     script:
     """
     #!/bin/bash
-
 	# Indexes and prepares consensus fasta for downstream steps
     /usr/local/miniconda/bin/bwa index consensus.fasta
 	/usr/local/miniconda/bin/samtools faidx consensus.fasta 
 	gatk CreateSequenceDictionary -R consensus.fasta  --VERBOSITY ERROR --QUIET true
-
 	# Preparatory steps for Annovar downstream
 	gff3ToGenePred lava_ref.gff AT_refGene.txt -warnAndContinue -useName -allowMinimalGenes
 	retrieve_seq_from_fasta.pl --format refGene --seqfile consensus.fasta AT_refGene.txt --out AT_refGeneMrna.fa 
-
     """
 }
 
@@ -101,14 +84,11 @@ process Align_samples {
 	shell:
 	'''
 	#!/bin/bash
-
 	echo aligning "!{R1}"
-
 	# Align each sample to consensus fasta.
 	/usr/local/miniconda/bin/bwa mem -t !{task.cpus} -M -R \'@RG\\tID:group1\\tSM:!{R1}\\tPL:illumina\\tLB:lib1\\tPU:unit1\' -p -L [17,17] consensus.fasta !{R1} > !{R1}.sam
 	# Sorts SAM.	
 	java -jar /usr/bin/picard.jar SortSam INPUT=!{R1}.sam OUTPUT=!{R1}.bam SORT_ORDER=coordinate VERBOSITY=ERROR 
-
 	# Removes duplicates (e.g. from library construction using PCR) if --DEDUPLICATE flag specified.
 	if !{DEDUPLICATE} 
 		then
@@ -116,16 +96,12 @@ process Align_samples {
 			java -jar /usr/bin/picard.jar MarkDuplicates INPUT=${R1}.bam OUTPUT=${R1}_dedup.bam METRICS_FILE=metrics.txt VERBOSITY=ERROR REMOVE_DUPLICATES=true
 			cat ${R1}_dedup.bam > ${R1}.bam
 	fi
-
 	java -jar /usr/bin/picard.jar BuildBamIndex INPUT=!{R1}.bam VERBOSITY=ERROR
-
 	# Creates genomecov file from BAM so we can generate coverage graphs later.
 	echo sample\tposition\tcov > !{R1}.genomecov
 	/usr/local/miniconda/bin/bedtools genomecov -d -ibam  !{R1}.bam >> !{R1}.genomecov
-
 	# Generates pileup that VCF can be called off of later.
 	/usr/local/miniconda/bin/samtools mpileup -B --max-depth 500000 -f consensus.fasta !{R1}.bam > !{R1}.pileup
-
 	'''
 }
 
@@ -150,10 +126,8 @@ process Pipeline_prep {
 	script:
 	"""
 	#!/bin/bash
-
 	# Creates header for final csv.
 	echo "Sample,Amino Acid Change,Position,AF,Change,Protein,NucleotideChange,LetterChange,Syn,Depth,Passage" > merged.csv
-
 	# Creates list of protein names and locations (proteins.csv) based on GFF annotations.
 	python3 ${INITIALIZE_PROTEINS_CSV}
 	"""
@@ -179,17 +153,12 @@ process Create_VCF {
 	shell:
 	'''
 	#!/bin/bash
-
 	ls -latr
-
 	echo Analyzing variants in sample !{R1}
-
 	# here for file passthrough (input -> output)
 	mv !{BAM} !{BAM}.bam 
-
 	# Generates VCF outputting all bases with a min coverage of 2.
 	cat !{R1_PILEUP} | java -jar /usr/local/bin/VarScan mpileup2cns --validation 1 --output-vcf 1 --min-coverage 2 > !{R1}.vcf
-
 	# Fixes ploidy issues.
 	awk -F $\'\t\' \'BEGIN {FS=OFS="\t"}{gsub("0/0","0/1",$10)gsub("0/0","1/0",$11)gsub("1/1","0/1",$10)gsub("1/1","1/0",$11)}1\' !{R1}.vcf > !{R1}_p.vcf
 	
@@ -220,25 +189,18 @@ process Extract_variants {
 	'''
 	#!/bin/bash
 	echo !{R1}
-
 	# Creates genomecov files for genome coverage graphs later.
 	echo 'sample	position	cov' > !{R1}.genomecov 
 	/usr/local/miniconda/bin/bedtools genomecov -d -ibam !{BAM} >> !{R1}.genomecov
-
 	# reads.csv from all processes will be merged together at end 
 	printf !{R1}"," > reads.csv
-
 	/usr/local/miniconda/bin/samtools flagstat !{BAM} | \
 	awk 'NR==1{printf $1","} NR==5{printf $1","} NR==5{print substr($5,2)}' >> reads.csv
-
 	awk -F":" '($26+0)>=1{print}' !{EXONICVARIANTS}> !{R1}.txt
-
 	grep "SNV" !{R1}.txt > a.tmp
 	grep "stop" !{R1}.txt >> a.tmp
 	mv a.tmp !{R1}.txt
-
 	SAMPLE="$(awk -F"," -v name=!{R1} '$1==name {print $2}' !{METADATA})"
-
 	echo $SAMPLE
 	
 	awk -v name=!{R1} -v sample=!{PASSAGE} -F'[\t:,]' '{print name","$6" "substr($9,3)","$12","$44+0","substr($9,3)","$6","substr($8,3)","substr($8,3,1)" to "substr($8,length($8))","$2","$43","sample}' !{R1}.txt > !{R1}.csv
@@ -266,10 +228,8 @@ process Annotate_complex {
 
 	"""
 	#!/bin/bash
-
 	# Checks for complex mutations and prints a warning message.
 	python3 ${ANNOTATE_COMPLEX_MUTATIONS} ${SAMPLE_CSV} ${PASSAGE}	
-
 	# Renaming files to avoid file collision
 	mv complex.log ${R1}.complex.log
 	mv reads.csv ${R1}.reads.csv
@@ -311,9 +271,7 @@ process Generate_output {
 
 	"""
 	#!/bin/bash
-
 	ls -lah
-
 	# cat *fastq.csv >> merged.csv
 	cat merged.csv > final.csv 
 	
@@ -325,30 +283,22 @@ process Generate_output {
 	else
 		cat *.fastq.csv >> final.csv
 	fi
-
 	#if ls *.gz &>/dev/null; then ...; else ...; fi
-
 	# Gets rid of non-SNPs
 	grep -v "transcript" final.csv > a.tmp && mv a.tmp final.csv 
 	grep -v "delins" final.csv > a.tmp && mv a.tmp final.csv 
-
 	# Sorts by beginning of mat peptide
 	sort -k2 -t, -n mat_peptides.txt > a.tmp && mv a.tmp mat_peptides.txt
 	# Adds mature peptide differences from protein start.
 	python3 ${MAT_PEPTIDE_ADDITION}
 	rm mat_peptides.txt
-
 	# Corrects for ribosomal slippage.
 	python3 ${RIBOSOMAL_SLIPPAGE} final.csv proteins.csv
-
 	awk NF final.csv > a.tmp && mv a.tmp final.csv
-
 	cat *.reads.csv > reads.csv 
-
 	cat *.log > complex.log
 	# TODO error handling @ line 669-683 of lava.py 
 	python3 ${GENOME_PROTEIN_PLOTS} visualization.csv proteins.csv reads.csv . "Plot"
-
 	mkdir vcf_files
 	mv *.vcf vcf_files
 	
