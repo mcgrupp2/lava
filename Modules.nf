@@ -11,6 +11,8 @@ process CreateGFF {
       val(GENBANK)
 	  file PULL_ENTREZ
 	  file WRITE_GFF
+	  file FASTA 
+	  file GFF
 
     output: 
       file "lava_ref.fasta"
@@ -22,13 +24,28 @@ process CreateGFF {
     script:
     """
     #!/bin/bash
-    
-	set -e 
-	# Pulls reference fasta and GenBank file using accession number specified by --GENBANK.
-	python3 ${PULL_ENTREZ} ${GENBANK}
-    /usr/local/miniconda/bin/bwa index lava_ref.fasta
-	# Creates a GFF (lava_ref.gff) for our consensus fasta per CDS annotations from our reference GenBank file.
-	python3 ${WRITE_GFF}
+
+	if [[ ${FASTA} == "False" ]]
+		then
+			# Pulls reference fasta and GenBank file using accession number specified by --GENBANK.
+			python3 ${PULL_ENTREZ} ${GENBANK}
+		else 
+			mv ${FASTA} lava_ref.fasta
+			mv ${GFF} lava_ref.gff
+			#Creates empty txt file
+			touch ribosomal_start.txt
+			touch mat_peptides.txt
+			cp lava_ref.fasta consensus.fasta
+	fi
+	
+	/usr/local/miniconda/bin/bwa index lava_ref.fasta
+
+	if [[ ${FASTA} == "NO_FILE" ]]
+		then
+			# Creates a GFF (lava_ref.gff) for our consensus fasta per CDS annotations from our reference GenBank file.
+			python3 ${WRITE_GFF}
+	fi
+
     """
 }
 
