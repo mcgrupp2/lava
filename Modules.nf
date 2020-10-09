@@ -175,7 +175,7 @@ process Create_VCF {
 	# here for file passthrough (input -> output)
 	mv !{BAM} !{BAM}.bam 
 	# Generates VCF outputting all bases with a min coverage of 2.
-	cat !{R1_PILEUP} | java -jar /usr/local/bin/VarScan mpileup2cns --validation 1 --output-vcf 1 --min-coverage 2 > !{R1}.vcf
+	cat !{R1_PILEUP} | java -jar /usr/local/bin/VarScan mpileup2cns --validation 1 --output-vcf 1 --min-coverage 2 --min-var-freq 0.001 --p-value 0.99 --min-reads2 1 > !{R1}.vcf
 	# Fixes ploidy issues.
 	awk -F $\'\t\' \'BEGIN {FS=OFS="\t"}{gsub("0/0","0/1",$10)gsub("0/0","1/0",$11)gsub("1/1","0/1",$10)gsub("1/1","1/0",$11)}1\' !{R1}.vcf > !{R1}_p.vcf
 	
