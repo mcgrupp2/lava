@@ -71,8 +71,8 @@ if (params.help){
 
 params.OUTDIR= false
 params.GENBANK = 'False'
-//params.GFF = 'False'
-//params.FASTA = 'NO_FILE'
+params.GFF = 'False'
+params.FASTA = 'False'
 params.DEDUPLICATE = 'false' 
 params.ALLELE_FREQ = 'NO_VAL'
 
@@ -130,10 +130,10 @@ if (params.OUTDIR == false) {
 //     exit(1)
 // }
 // If no flags specified
-if(params.GENBANK == "False"){ 
-    println('Must provide --GENBANK flag with GenBank accession number.')
-    exit(1)
-}
+// if(params.GENBANK == "False"){ 
+//     println('Must provide --GENBANK flag with GenBank accession number.')
+//     exit(1)
+// }
 
 // Make sure OUTDIR ends with trailing slash
 if (!params.OUTDIR.endsWith("/")){
@@ -167,7 +167,9 @@ workflow {
         CreateGFF ( 
             params.GENBANK,
             PULL_ENTREZ,
-            WRITE_GFF
+            WRITE_GFF,
+            file(params.FASTA),
+            file(params.GFF)
         )
         
         Alignment_prep ( 
