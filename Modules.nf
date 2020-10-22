@@ -25,7 +25,7 @@ process CreateGFF {
     """
     #!/bin/bash
 
-	if [[ ${FASTA} == "False" ]]
+	if [[ ${FASTA} == "NO_FILE" ]]
 		then
 			# Pulls reference fasta and GenBank file using accession number specified by --GENBANK.
 			python3 ${PULL_ENTREZ} ${GENBANK}
