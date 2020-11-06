@@ -82,6 +82,7 @@ METADATA_FILE = file(params.METADATA)
  * Import the processes used in this workflow
  */
 
+include CreateGFF_Genbank from './Modules.nf'
 include CreateGFF from './Modules.nf'
 include Alignment_prep from './Modules.nf'
 include Align_samples from './Modules.nf' 
@@ -164,6 +165,22 @@ Channel
 
 workflow {
     log.info nfcoreHeader()
+    if(params.FASTA == "NO_FILE") {
+        CreateGFF_Genbank ( 
+            params.GENBANK,
+            PULL_ENTREZ,
+            WRITE_GFF
+        )
+        
+        Alignment_prep ( 
+            CreateGFF_Genbank.out[0],
+            CreateGFF_Genbank.out[1],
+            CreateGFF_Genbank.out[2],
+            CreateGFF_Genbank.out[3],
+            CreateGFF_Genbank.out[4]
+        )   
+    }
+    else {
         CreateGFF ( 
             params.GENBANK,
             PULL_ENTREZ,
@@ -175,8 +192,11 @@ workflow {
         Alignment_prep ( 
             CreateGFF.out[0],
             CreateGFF.out[1],
-            CreateGFF.out[2]
-        )
+            CreateGFF.out[2],
+            CreateGFF.out[3],
+            CreateGFF.out[4]
+        )   
+    }
 
         Align_samples ( 
             input_read_ch,
@@ -187,7 +207,7 @@ workflow {
 
         Pipeline_prep ( 
             Align_samples.out[0].collect(),
-            CreateGFF.out[2],
+            Alignment_prep.out[3],
             Alignment_prep.out[0],
             INITIALIZE_PROTEINS_CSV
         )
@@ -218,8 +238,8 @@ workflow {
             Pipeline_prep.out[1],
             Align_samples.out[1].collect(),
             Create_VCF.out[2].collect(),
-            CreateGFF.out[3],
-            CreateGFF.out[4],
+            Alignment_prep.out[4],
+            Alignment_prep.out[5],
             MAT_PEPTIDE_ADDITION,
             RIBOSOMAL_SLIPPAGE,
             GENOME_PROTEIN_PLOTS,
