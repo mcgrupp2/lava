@@ -54,8 +54,6 @@ def protein_annotation(first):
 			# 	x2 = mat_peptides_list.iloc[i,2]
 			# else:
 			# 	x2 = mat_peptides_list.iloc[(i+1),1]
-			print(x1)
-			print(x2)
 			genome_plot.add_layout(Arrow(end = VeeHead(size=20, fill_color = "cadetblue", fill_alpha = 0.3, line_alpha = 0), 
 				line_color = "cadetblue", line_width = 20, x_start = x1, x_end = x2,
 				y_start = 5, y_end = 5, line_alpha = 0.3))
@@ -479,7 +477,7 @@ if __name__ == '__main__':
 		protein_plot.xaxis.axis_label = "Sample"
 		configurePlot(protein_plot)
 		protein_plot.add_tools(HoverTool(tooltips=TOOLTIPS))
-		
+		protein_plot.xaxis.major_label_orientation = pi/4
 		
 		# Creates button to allow reset of plot.
 		reset_button = Button(label="Reset Plot")
