@@ -227,6 +227,7 @@ process Extract_variants {
 	output:
 		tuple file("${R1}.csv"), val(PASSAGE), file("reads.csv"), file(R1) optional true
 		tuple file(R1), val(PASSAGE) optional true
+		tuple file("${R1}.txt")
 	shell:
 
 	'''
