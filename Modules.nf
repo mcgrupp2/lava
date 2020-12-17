@@ -1,5 +1,36 @@
 // Uses accession number specified by --GENBANK to create our own GFF (lava_ref.gff) for a consensus fasta
 // generated from the alignment of "Passage 0" sample to reference fasta.
+process CreateGFF_Genbank { 
+    container "quay.io/vpeddu/lava_image:latest"
+
+	// Retry on fail at most three times 
+    errorStrategy 'retry'
+    maxRetries 3
+	
+    input:
+      val(GENBANK)
+	  file PULL_ENTREZ
+	  file WRITE_GFF
+
+    output: 
+      file "lava_ref.fasta"
+      file "consensus.fasta"
+      file "lava_ref.gff"
+	  file "ribosomal_start.txt"
+	  file "mat_peptides.txt"
+
+    script:
+    """
+    #!/bin/bash
+	python3 ${PULL_ENTREZ} ${GENBANK}
+	/usr/local/miniconda/bin/bwa index lava_ref.fasta
+	python3 ${WRITE_GFF}
+
+    """
+}
+
+// Uses accession number specified by --GENBANK to create our own GFF (lava_ref.gff) for a consensus fasta
+// generated from the alignment of "Passage 0" sample to reference fasta.
 process CreateGFF { 
     container "quay.io/vpeddu/lava_image:latest"
 
@@ -25,26 +56,15 @@ process CreateGFF {
     """
     #!/bin/bash
 
-	if [[ ${FASTA} == "NO_FILE" ]]
-		then
-			# Pulls reference fasta and GenBank file using accession number specified by --GENBANK.
-			python3 ${PULL_ENTREZ} ${GENBANK}
-		else 
-			mv ${FASTA} lava_ref.fasta
-			mv ${GFF} lava_ref.gff
-			#Creates empty txt file
-			touch ribosomal_start.txt
-			touch mat_peptides.txt
-			cp lava_ref.fasta consensus.fasta
-	fi
-	
+	grep -v "mature_peptide" ${GFF} > lava_ref.gff
+	grep "mature_peptide" ${GFF} | sed "s/,mature_peptide//g" > mat_peptides.txt
+	mv ${FASTA} lava_ref.fasta
+	#mv ${GFF} lava_ref.gff
+	#Creates empty txt file
+	touch ribosomal_start.txt
+	#touch mat_peptides.txt
+	cp lava_ref.fasta consensus.fasta
 	/usr/local/miniconda/bin/bwa index lava_ref.fasta
-
-	if [[ ${FASTA} == "NO_FILE" ]]
-		then
-			# Creates a GFF (lava_ref.gff) for our consensus fasta per CDS annotations from our reference GenBank file.
-			python3 ${WRITE_GFF}
-	fi
 
     """
 }
@@ -58,14 +78,20 @@ process Alignment_prep {
     maxRetries 3
 
     input:
-      file "lava_ref.fasta"
+	  file "lava_ref.fasta"
       file "consensus.fasta"
       file "lava_ref.gff"
+	  file "ribosomal_start.txt"
+	  file "mat_peptides.txt"
 
     output: 
 	tuple file('consensus.fasta.amb'), file('consensus.fasta.bwt'), file('consensus.fasta.sa'), file('consensus.fasta'), file('consensus.fasta.ann'), file('consensus.fasta.pac')
 	file "AT_refGene.txt"
 	file "AT_refGeneMrna.fa"
+    file "lava_ref.gff"
+	file "ribosomal_start.txt"
+	file "mat_peptides.txt"
+
 
     // Code to be executed inside the task
     script:
