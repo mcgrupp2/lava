@@ -82,15 +82,15 @@ METADATA_FILE = file(params.METADATA)
  * Import the processes used in this workflow
  */
 
-include CreateGFF_Genbank from './Modules.nf'
-include CreateGFF from './Modules.nf'
-include Alignment_prep from './Modules.nf'
-include Align_samples from './Modules.nf' 
-include Pipeline_prep from './Modules.nf'
-include Create_VCF from './Modules.nf'
-include Extract_variants from './Modules.nf'
-include Annotate_complex from './Modules.nf'
-include Generate_output from './Modules.nf'
+include { CreateGFF_Genbank }from './Modules.nf'
+include { CreateGFF } from './Modules.nf'
+include { Alignment_prep } from './Modules.nf'
+include { Align_samples } from './Modules.nf' 
+include { Pipeline_prep } from './Modules.nf'
+include { Create_VCF } from './Modules.nf'
+include { Extract_variants } from './Modules.nf'
+include { Annotate_complex } from './Modules.nf'
+include { Generate_output } from './Modules.nf'
 
 
 // Staging python scripts
@@ -245,9 +245,6 @@ workflow {
             GENOME_PROTEIN_PLOTS,
             PALETTE
         )
-        
-    publish:
-        Generate_output.out to: "${params.OUTDIR}" , mode: 'copy'
 }
 
 def nfcoreHeader() {
