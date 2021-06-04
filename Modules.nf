@@ -310,6 +310,10 @@ process Generate_output {
 		file "vcf_files"
 		file "genomecov"
 		file "all_files"
+	
+	publishDir params.OUTDIR, mode: 'copy'
+
+	
 	script:
 
 	"""
