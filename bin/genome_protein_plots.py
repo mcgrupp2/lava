@@ -15,6 +15,7 @@ from bokeh.transform import jitter, factor_cmap
 from bokeh.models.widgets import Panel, Tabs, Paragraph, Div, CheckboxGroup
 from bokeh.layouts import column, layout, widgetbox, row
 from palette import color_palette
+from bokeh.palettes import Category20
 from math import pi
 import subprocess
 import os
@@ -72,7 +73,26 @@ def protein_annotation(first):
 	
 # Creates the legend and configures some of the toolbar stuff.
 def configurePlot(g):
-	g.legend.location = "top_right"
+	g.legend.location = "top_left"
+	#g.add_layout(g.legend[0], 'right')
+	#g.legend.location = "top"
+	# Adjusts size of scatter points within legend.
+	g.legend.glyph_width = 35
+	g.legend.glyph_height = 35
+	# Adjusts visual properties of legend.
+	g.legend.spacing = -10
+	g.legend.background_fill_alpha = 0.5
+	## disabled scroll wheel zooming for all plots - RCS
+	## g.toolbar.active_scroll = g.select_one(WheelZoomTool)
+
+	#Adjusts tick visualization.
+	g.yaxis.axis_label_standoff = 10
+	g.yaxis.axis_label = "Allele Frequency (%)"
+	g.xaxis.minor_tick_line_color = None
+
+
+def configurePlot2(g):
+	#g.legend.location = "top_left"
 	g.add_layout(g.legend[0], 'right')
 	#g.legend.location = "top"
 	# Adjusts size of scatter points within legend.
@@ -376,7 +396,7 @@ if __name__ == '__main__':
 		# Sets up visualization and hover tool.
 		genome_plot.add_tools(HoverTool(tooltips=TOOLTIPS))
 		genome_plot.xgrid.grid_line_alpha = 0
-		configurePlot(genome_plot)
+		configurePlot2(genome_plot)
 
 		protein_names,protein_lengths = protein_annotation(FIRST)
 		FIRST = False
