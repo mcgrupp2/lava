@@ -76,7 +76,8 @@ def protein_annotation(first):
 	
 # Creates the legend and configures some of the toolbar stuff.
 def configurePlot(g):
-	g.legend.location = "top_right"
+	#g.legend.location = "top_right"
+	g.add_layout(g.legend[0], 'right')
 	# Adjusts size of scatter points within legend.
 	g.legend.glyph_width = 35
 	g.legend.glyph_height = 35
