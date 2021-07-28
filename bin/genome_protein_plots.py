@@ -396,7 +396,7 @@ if __name__ == '__main__':
 		# Sets up visualization and hover tool.
 		genome_plot.add_tools(HoverTool(tooltips=TOOLTIPS))
 		genome_plot.xgrid.grid_line_alpha = 0
-		configurePlot2(genome_plot)
+		configurePlot(genome_plot)
 
 		protein_names,protein_lengths = protein_annotation(FIRST)
 		FIRST = False
